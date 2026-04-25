@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const monitors_controller_1 = require("./monitors.controller");
+const authMiddleware_1 = require("../../middlewares/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.authenticate);
+router.get('/', monitors_controller_1.getMonitors);
+router.post('/', monitors_controller_1.createMonitor);
+router.put('/:id', monitors_controller_1.updateMonitor);
+router.delete('/:id', monitors_controller_1.deleteMonitor);
+exports.default = router;

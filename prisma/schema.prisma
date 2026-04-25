@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String?  @unique
+  name      String
+  password  String
+  role      String   @default("commercial") // admin, manager, commercial
+  status    String   @default("active") // active, disabled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  permissions ManagerPermissions?
+}
+
+model ManagerPermissions {
+  id                    String  @id @default(uuid())
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canAddBookings        Boolean @default(true)
+  canEditBookings       Boolean @default(true)
+  canDeleteBookings     Boolean @default(false)
+  canAddExpenses        Boolean @default(true)
+  canAssignMonitors     Boolean @default(true)
+  canViewRevenueSummary Boolean @default(true)
+  canViewOtherBookings  Boolean @default(true)
+  canEditBuses          Boolean @default(true)
+  canClosePrices        Boolean @default(false)
+  canEditPastDays       Boolean @default(false)
+  canManageCommercials  Boolean @default(false)
+  canViewOperations     Boolean @default(true)
+}
+
+model Commercial {
+  id         String   @id @default(uuid())
+  name       String
+  type       String   // percentage, fixed
+  commission Float
+  bookings   Booking[]
+}
+
+model Monitor {
+  id           String   @id @default(uuid())
+  name         String
+  status_ss    Boolean  @default(true)
+  daily_rate   Float
+  availability String?
+}
+
+model ShiftBuses {
+  id      String @id @default(uuid())
+  date    String // YYYY-MM-DD
+  shift   String // Morning, Afternoon, Paella
+  buses19 Int    @default(0)
+  buses28 Int    @default(0)
+  buses35 Int    @default(0)
+  buses55 Int    @default(0)
+
+  @@unique([date, shift])
+}
+
+model ExtraExpense {
+  id          String   @id @default(uuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  description String
+  cost        Float
+  paymentType String?  // A, B
+}
+
+model MonitorAssignment {
+  id        String   @id @default(uuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  name      String
+  cost      Float
+}
+
+model Booking {
+  id                 String   @id @default(uuid())
+  date               String   // YYYY-MM-DD
+  shift              String   // Morning, Afternoon, Paella
+  clientName         String
+  phone              String
+  company            String
+  numBoats           Int      @default(0)
+  
+  // Pax
+  adultsRafting      Int      @default(0)
+  adultsKayak        Int      @default(0)
+  adultsBanana       Int      @default(0)
+  childrenRafting    Int      @default(0)
+  
+  // Prices
+  priceAdultRafting  Float    @default(0)
+  priceChildRafting  Float    @default(0)
+  priceKayak         Float    @default(0)
+  priceBanana        Float    @default(0)
+  
+  observations       String   @default("")
+  
+  // Payments
+  payTransfers       Float    @default(0)
+  payPos             Float    @default(0)
+  payBizum           Float    @default(0)
+  payCash            Float    @default(0)
+  payExtraIncome     Float    @default(0)
+
+  // Status
+  status             String   @default("pending") // pending, approved
+  isPaid             Boolean  @default(false)
+  closedPrice        Float?
+  closingDate        String?
+  needsInvoice       Boolean  @default(false)
+  commissionOverride Float?
+
+  // Relations
+  commercialId       String?
+  commercial         Commercial? @relation(fields: [commercialId], references: [id])
+  monitors           MonitorAssignment[]
+  extraExpenses      ExtraExpense[]
+}
+
+model Settings {
+  id                String @id @default("global")
+  priceAdultRafting Float  @default(35)
+  priceChildRafting Float  @default(25)
+  priceKayak        Float  @default(25)
+  priceBanana       Float  @default(15)
+  costBus19         Float  @default(150)
+  costBus28         Float  @default(200)
+  costBus35         Float  @default(250)
+  costBus55         Float  @default(350)
+  costBoat          Float  @default(40)
+  fixedMonthlyCosts Float  @default(1800)
+  baseAdminFee      Float  @default(20)
+}
